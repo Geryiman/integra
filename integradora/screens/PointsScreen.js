@@ -28,20 +28,24 @@ export default function PointsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F5F5F5",
+    backgroundColor: "#000000",
     justifyContent: "center",
     alignItems: "center",
     padding: 20,
   },
   title: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: "bold",
-    color: "#5E6472",
+    color: "#FFFFFF",
     marginBottom: 20,
+    textAlign: "center",
   },
   points: {
-    fontSize: 48,
+    fontSize: 64,
     fontWeight: "bold",
-    color: "#B8F2E6",
+    color: "#33FF99",
+    textShadowColor: "#00FFFF",
+    textShadowOffset: { width: 2, height: 2 },
+    textShadowRadius: 5,
   },
 });

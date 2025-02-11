@@ -9,18 +9,18 @@ export default function ProfileScreen() {
         animation="bounceIn"
         duration={1500}
         source={{
-          uri: "https://salud-magenes.sfo2.digitaloceanspaces.com/usuario/06160335342/perfil.jpg", // Imagen temporal de perfil
+          uri: "https://salud-magenes.sfo2.digitaloceanspaces.com/imagenes/alarmas/12345678901_1738562077756.jpg",
         }}
         style={styles.profileImage}
       />
       <Animatable.Text animation="fadeInUp" duration={1500} style={styles.title}>
-        Usuario: Sofia hernandez
+        Usuario: Sofia Hernandez
       </Animatable.Text>
       <Animatable.Text animation="fadeInUp" duration={2000} style={styles.text}>
         Correo: Sofi@gmail.com
       </Animatable.Text>
       <Animatable.Text animation="fadeInUp" duration={2500} style={styles.text}>
-        Carrera: Enfermeria
+        Carrera: Enfermería
       </Animatable.Text>
     </View>
   );
@@ -29,7 +29,7 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F5F5F5",
+    backgroundColor: "#000000",
     justifyContent: "center",
     alignItems: "center",
     padding: 20,
@@ -39,18 +39,20 @@ const styles = StyleSheet.create({
     height: 150,
     borderRadius: 75,
     borderWidth: 3,
-    borderColor: "#AED9E0",
+    borderColor: "#00FFFF",
     marginBottom: 20,
   },
   title: {
     fontSize: 24,
     fontWeight: "bold",
-    color: "#5E6472",
+    color: "#FFFFFF",
     marginBottom: 10,
+    textAlign: "center",
   },
   text: {
     fontSize: 16,
-    color: "#5E6472",
+    color: "#B8F2E6",
     marginBottom: 5,
+    textAlign: "center",
   },
 });

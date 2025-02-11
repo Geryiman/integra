@@ -6,6 +6,7 @@ import RegisterScreen from "./screens/RegisterScreen";
 import HomeScreen from "./screens/HomeScreen";
 import ProfileScreen from "./screens/ProfileScreen";
 import PointsScreen from "./screens/PointsScreen";
+import SettingsScreen from "./screens/SettingsScreen"; // Importar la pantalla de ajustes
 
 const Stack = createStackNavigator();
 
@@ -18,6 +19,7 @@ export default function App() {
         <Stack.Screen name="Home" component={HomeScreen} />
         <Stack.Screen name="Profile" component={ProfileScreen} />
         <Stack.Screen name="Points" component={PointsScreen} />
+        <Stack.Screen name="Settings" component={SettingsScreen} /> 
       </Stack.Navigator>
     </NavigationContainer>
   );
