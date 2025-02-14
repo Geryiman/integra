@@ -6,7 +6,15 @@ import RegisterScreen from "./screens/RegisterScreen";
 import HomeScreen from "./screens/HomeScreen";
 import ProfileScreen from "./screens/ProfileScreen";
 import PointsScreen from "./screens/PointsScreen";
-import SettingsScreen from "./screens/SettingsScreen"; // Importar la pantalla de ajustes
+import RewardsScreen from "./screens/RewardsScreen";
+import HistoryScreen from "./screens/HistoryScreen";
+import RanksScreen from "./screens/RanksScreen"; 
+import SettingsScreen from "./screens/SettingsScreen";
+import TasksScreen from "./screens/TasksScreen";
+import CompletedTasksScreen from "./screens/CompletedTasksScreen";
+
+
+
 
 const Stack = createStackNavigator();
 
@@ -19,7 +27,12 @@ export default function App() {
         <Stack.Screen name="Home" component={HomeScreen} />
         <Stack.Screen name="Profile" component={ProfileScreen} />
         <Stack.Screen name="Points" component={PointsScreen} />
-        <Stack.Screen name="Settings" component={SettingsScreen} /> 
+        <Stack.Screen name="Rewards" component={RewardsScreen} />
+        <Stack.Screen name="History" component={HistoryScreen} />
+        <Stack.Screen name="Ranks" component={RanksScreen} /> 
+        <Stack.Screen name="Settings" component={SettingsScreen} />
+        <Stack.Screen name="Tasks" component={TasksScreen} />
+        <Stack.Screen name="CompletedTasks" component={CompletedTasksScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
