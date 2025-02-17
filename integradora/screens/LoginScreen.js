@@ -1,38 +1,120 @@
-import React from "react";
-import { SafeAreaView, View, Text, TextInput, TouchableOpacity, StyleSheet } from "react-native";
-import Icon from "react-native-vector-icons/MaterialIcons";
+import React, { useState } from "react";
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  SafeAreaView,
+  ActivityIndicator,
+} from "react-native";
+
+// ✅ Define la IP del backend
+const API_URL = "http://192.168.1.27:3000/usuarios/login";
 
 export default function LoginScreen({ navigation }) {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  // Función para validar email
+  const isValidEmail = (email) => {
+    return /\S+@\S+\.\S+/.test(email);
+  };
+
+  // Función para manejar el inicio de sesión
+  const handleLogin = async () => {
+    setError("");
+    setSuccessMessage("");
+    setLoading(true);
+
+    if (!email || !password) {
+      setLoading(false);
+      setError("Todos los campos son obligatorios.");
+      return;
+    }
+
+    if (!isValidEmail(email)) {
+      setLoading(false);
+      setError("Ingrese un correo electrónico válido.");
+      return;
+    }
+
+    try {
+      const response = await fetch(API_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setLoading(false);
+        setError(data.error || "Error al iniciar sesión.");
+        return;
+      }
+
+      // ✅ Mensaje de éxito sin alerta invasiva
+      setSuccessMessage(`Bienvenido ${data.usuario.nombre}`);
+      setLoading(false);
+
+      // ✅ Redirigir a Home después de 1.5 segundos
+      setTimeout(() => {
+        navigation.reset({
+          index: 0,
+          routes: [{ name: "Home" }],
+        });
+      }, 1500);
+    } catch (error) {
+      setLoading(false);
+      console.error("Error de conexión:", error);
+      setError("Error de conexión con el servidor. Verifica tu red.");
+    }
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
-        <Text style={styles.title}>Inicio de Sesión</Text>
+        <Text style={styles.title}>Iniciar Sesión</Text>
 
-        <View style={styles.inputContainer}>
-          <Icon name="person" size={24} color="#5E6472" style={styles.inputIcon} />
-          <TextInput
-            style={styles.input}
-            placeholder="Nombre"
-            placeholderTextColor="#5E6472"
-          />
-        </View>
+        {error ? <Text style={styles.errorText}>{error}</Text> : null}
+        {successMessage ? <Text style={styles.successText}>{successMessage}</Text> : null}
 
-        <View style={styles.inputContainer}>
-          <Icon name="lock" size={24} color="#5E6472" style={styles.inputIcon} />
-          <TextInput
-            style={styles.input}
-            placeholder="Contraseña"
-            placeholderTextColor="#5E6472"
-            secureTextEntry
-          />
-        </View>
+        <TextInput
+          style={styles.input}
+          placeholder="Correo Electrónico"
+          placeholderTextColor="#333333"
+          keyboardType="email-address"
+          value={email}
+          onChangeText={setEmail}
+        />
 
-        <TouchableOpacity style={styles.button} onPress={() => navigation.navigate("Home")}>
-          <Text style={styles.buttonText}>Iniciar Sesión</Text>
-        </TouchableOpacity>
+        <TextInput
+          style={styles.input}
+          placeholder="Contraseña"
+          placeholderTextColor="#333333"
+          secureTextEntry
+          value={password}
+          onChangeText={setPassword}
+        />
+
+        {loading ? (
+          <ActivityIndicator size="large" color="#33FF99" />
+        ) : (
+          <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
+            <Text style={styles.buttonText}>Iniciar Sesión</Text>
+          </TouchableOpacity>
+        )}
 
         <TouchableOpacity onPress={() => navigation.navigate("Register")}>
-          <Text style={styles.link}>¿No tienes cuenta? Regístrate aquí</Text>
+          <Text style={styles.registerText}>
+            ¿No tienes cuenta? Regístrate
+          </Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -57,54 +139,48 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     textAlign: "center",
   },
-  inputContainer: {
-    flexDirection: "row",
-    alignItems: "center",
+  input: {
     width: "100%",
+    height: 50,
     backgroundColor: "#FFFFFF",
     borderRadius: 10,
     paddingHorizontal: 10,
     marginBottom: 15,
-    borderWidth: 2,
-    borderColor: "#5E6472",
-    shadowColor: "#00FFFF",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 5,
-    elevation: 5,
-  },
-  inputIcon: {
-    marginRight: 10,
-  },
-  input: {
-    flex: 1,
-    height: 50,
     fontSize: 16,
+    borderWidth: 2,
+    borderColor: "#333333",
     color: "#000000",
   },
-  button: {
+  loginButton: {
     backgroundColor: "#33FF99",
     paddingVertical: 15,
-    paddingHorizontal: 40,
+    paddingHorizontal: 20,
     borderRadius: 10,
-    marginVertical: 10,
     alignItems: "center",
-    shadowColor: "#33FF99",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.5,
-    shadowRadius: 5,
-    elevation: 5,
+    width: "100%",
+    marginTop: 10,
   },
   buttonText: {
     color: "#000000",
     fontSize: 16,
     fontWeight: "bold",
   },
-  link: {
-    color: "#00FFFF",
+  registerText: {
+    color: "#33FF99",
     marginTop: 10,
-    fontSize: 16,
+    fontSize: 14,
+  },
+  errorText: {
+    color: "#FF3333",
+    fontSize: 14,
+    marginBottom: 10,
     textAlign: "center",
-    textDecorationLine: "underline",
+  },
+  successText: {
+    color: "#33FF99",
+    fontSize: 16,
+    marginBottom: 10,
+    textAlign: "center",
+    fontWeight: "bold",
   },
 });

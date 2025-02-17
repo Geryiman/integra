@@ -2,9 +2,17 @@ import React from "react";
 import { View, Text, Switch, StyleSheet, TouchableOpacity } from "react-native";
 import * as Animatable from "react-native-animatable";
 
-export default function SettingsScreen() {
+export default function SettingsScreen({ navigation }) {
   const [notifications, setNotifications] = React.useState(true);
   const [darkMode, setDarkMode] = React.useState(false);
+
+  // ✅ Función para cerrar sesión y redirigir a Login
+  const handleLogout = () => {
+    navigation.reset({
+      index: 0,
+      routes: [{ name: "Login" }], // Redirige a la pantalla de Login
+    });
+  };
 
   return (
     <View style={styles.container}>
@@ -32,7 +40,7 @@ export default function SettingsScreen() {
         />
       </View>
 
-      <TouchableOpacity style={styles.logoutButton}>
+      <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
         <Text style={styles.buttonText}>Cerrar Sesión</Text>
       </TouchableOpacity>
     </View>
