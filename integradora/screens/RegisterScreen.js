@@ -9,23 +9,37 @@ import {
   SafeAreaView,
   ActivityIndicator,
 } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage"; // Importamos AsyncStorage
 
 const RegisterScreen = ({ navigation }) => {
   const [nombre, setNombre] = useState("");
+  const [apellido, setApellido] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [loading, setLoading] = useState(false);
 
+  // 📌 Función para validar email
+  const isValidEmail = (email) => {
+    return /\S+@\S+\.\S+/.test(email);
+  };
+
   const handleRegister = async () => {
     setError("");
     setSuccessMessage("");
     setLoading(true);
 
-    if (!nombre || !email || !password) {
+    // ✅ Validaciones
+    if (!nombre || !apellido || !email || !password) {
       setLoading(false);
       setError("Todos los campos son obligatorios.");
+      return;
+    }
+
+    if (!isValidEmail(email)) {
+      setLoading(false);
+      setError("Ingrese un correo electrónico válido.");
       return;
     }
 
@@ -35,13 +49,16 @@ const RegisterScreen = ({ navigation }) => {
       return;
     }
 
+    // ✅ Concatenar nombre y apellido en un solo campo
+    const nombreCompleto = `${nombre.trim()} ${apellido.trim()}`;
+
     try {
       const response = await fetch("http://192.168.1.27:3000/usuarios", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ nombre, email, password }),
+        body: JSON.stringify({ nombre: nombreCompleto, email, password }),
       });
 
       const data = await response.json();
@@ -51,6 +68,12 @@ const RegisterScreen = ({ navigation }) => {
         setError(data.error || "Error al registrar usuario.");
         return;
       }
+
+      // ✅ Guardar toda la información del usuario en AsyncStorage
+      await AsyncStorage.setItem("isLoggedIn", "true");
+      await AsyncStorage.setItem("userEmail", email);
+      await AsyncStorage.setItem("userName", nombreCompleto);
+      await AsyncStorage.setItem("userId", data.id.toString()); // Guardar el ID del usuario
 
       setSuccessMessage("Registro exitoso. Redirigiendo...");
       setLoading(false);
@@ -75,6 +98,7 @@ const RegisterScreen = ({ navigation }) => {
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
         {successMessage ? <Text style={styles.successText}>{successMessage}</Text> : null}
 
+        {/* ✅ Input para Nombre */}
         <TextInput
           style={styles.input}
           placeholder="Nombre"
@@ -83,6 +107,16 @@ const RegisterScreen = ({ navigation }) => {
           onChangeText={setNombre}
         />
 
+        {/* ✅ Input para Apellido */}
+        <TextInput
+          style={styles.input}
+          placeholder="Apellido"
+          placeholderTextColor="#333333"
+          value={apellido}
+          onChangeText={setApellido}
+        />
+
+        {/* ✅ Input para Email */}
         <TextInput
           style={styles.input}
           placeholder="Correo Electrónico"
@@ -92,9 +126,10 @@ const RegisterScreen = ({ navigation }) => {
           onChangeText={setEmail}
         />
 
+        {/* ✅ Input para Contraseña */}
         <TextInput
           style={styles.input}
-          placeholder="Contraseña"
+          placeholder="Contraseña (mínimo 6 caracteres)"
           placeholderTextColor="#333333"
           secureTextEntry
           value={password}
@@ -120,6 +155,7 @@ const RegisterScreen = ({ navigation }) => {
   );
 };
 
+// 📌 **Estilos**
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
@@ -194,5 +230,4 @@ const styles = StyleSheet.create({
   },
 });
 
-// ✅ Asegurar que solo hay **una** exportación por defecto
 export default RegisterScreen;

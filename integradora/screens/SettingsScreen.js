@@ -1,17 +1,27 @@
 import React from "react";
 import { View, Text, Switch, StyleSheet, TouchableOpacity } from "react-native";
 import * as Animatable from "react-native-animatable";
+import AsyncStorage from "@react-native-async-storage/async-storage"; // Importamos AsyncStorage
 
 export default function SettingsScreen({ navigation }) {
   const [notifications, setNotifications] = React.useState(true);
   const [darkMode, setDarkMode] = React.useState(false);
 
-  // ✅ Función para cerrar sesión y redirigir a Login
-  const handleLogout = () => {
-    navigation.reset({
-      index: 0,
-      routes: [{ name: "Login" }], // Redirige a la pantalla de Login
-    });
+  // ✅ Función para cerrar sesión correctamente
+  const handleLogout = async () => {
+    try {
+      // ✅ Eliminar los datos de sesión
+      await AsyncStorage.removeItem("isLoggedIn");
+      await AsyncStorage.removeItem("userEmail");
+
+      // ✅ Redirigir a la pantalla de Login
+      navigation.reset({
+        index: 0,
+        routes: [{ name: "Login" }],
+      });
+    } catch (error) {
+      console.error("Error al cerrar sesión:", error);
+    }
   };
 
   return (
@@ -47,6 +57,7 @@ export default function SettingsScreen({ navigation }) {
   );
 }
 
+// 📌 **Estilos**
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -89,3 +100,4 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
 });
+

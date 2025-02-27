@@ -17,7 +17,7 @@ const HomeScreen = ({ navigation }) => {
 
   // ✅ Obtener tareas desde el backend
   useEffect(() => {
-    axios.get(`${API_URL}/tareas`)
+    axios.get(`${API_URL}/api/tareas`)
       .then(response => {
         setTasks(response.data);
         setLoading(false);

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   SafeAreaView,
   ActivityIndicator,
 } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage"; // Importamos AsyncStorage
 
 // ✅ Define la IP del backend
 const API_URL = "http://192.168.1.27:3000/usuarios/login";
@@ -19,12 +20,26 @@ export default function LoginScreen({ navigation }) {
   const [successMessage, setSuccessMessage] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Función para validar email
+  // ✅ Verificar si el usuario ya está autenticado
+  useEffect(() => {
+    const checkLoginStatus = async () => {
+      const isLoggedIn = await AsyncStorage.getItem("isLoggedIn");
+      const storedUserId = await AsyncStorage.getItem("userId");
+
+      if (isLoggedIn === "true" && storedUserId) {
+        navigation.replace("Home"); // Si está autenticado, va directamente a Home
+      }
+    };
+
+    checkLoginStatus();
+  }, []);
+
+  // ✅ Función para validar email
   const isValidEmail = (email) => {
     return /\S+@\S+\.\S+/.test(email);
   };
 
-  // Función para manejar el inicio de sesión
+  // ✅ Función para manejar el inicio de sesión
   const handleLogin = async () => {
     setError("");
     setSuccessMessage("");
@@ -59,7 +74,12 @@ export default function LoginScreen({ navigation }) {
         return;
       }
 
-      // ✅ Mensaje de éxito sin alerta invasiva
+      // ✅ Guardar sesión, correo y userId en AsyncStorage
+      await AsyncStorage.setItem("isLoggedIn", "true");
+      await AsyncStorage.setItem("userEmail", email);
+      await AsyncStorage.setItem("userId", data.usuario.id_usuario.toString()); // Guarda el ID del usuario
+
+      // ✅ Mensaje de éxito
       setSuccessMessage(`Bienvenido ${data.usuario.nombre}`);
       setLoading(false);
 
@@ -69,7 +89,7 @@ export default function LoginScreen({ navigation }) {
           index: 0,
           routes: [{ name: "Home" }],
         });
-      }, 1500);
+      }, 500);
     } catch (error) {
       setLoading(false);
       console.error("Error de conexión:", error);
@@ -121,6 +141,7 @@ export default function LoginScreen({ navigation }) {
   );
 }
 
+// ✅ Estilos
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
