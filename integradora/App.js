@@ -1,11 +1,11 @@
 import React from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
-import AsyncStorage from "@react-native-async-storage/async-storage"; // Importamos AsyncStorage
+import AsyncStorage from "@react-native-async-storage/async-storage"; 
 import { useEffect, useState } from "react";
 
 // Importamos las pantallas
-import SplashScreen from "./screens/SplashScreen"; // ✅ Agregamos la pantalla de carga
+import SplashScreen from "./screens/SplashScreen"; 
 import LoginScreen from "./screens/LoginScreen";
 import RegisterScreen from "./screens/RegisterScreen";
 import HomeScreen from "./screens/HomeScreen";
@@ -17,6 +17,8 @@ import RanksScreen from "./screens/RanksScreen";
 import SettingsScreen from "./screens/SettingsScreen";
 import TasksScreen from "./screens/TasksScreen";
 import CompletedTasksScreen from "./screens/CompletedTasksScreen";
+import ScanScreen from "./screens/ScanScreen";
+	
 
 const Stack = createStackNavigator();
 
@@ -26,11 +28,7 @@ export default function App() {
   useEffect(() => {
     const checkLoginStatus = async () => {
       const isLoggedIn = await AsyncStorage.getItem("isLoggedIn");
-      if (isLoggedIn === "true") {
-        setInitialRoute("Home"); // Si está autenticado, ir a Home
-      } else {
-        setInitialRoute("Login"); // Si no, ir a Login
-      }
+      setInitialRoute(isLoggedIn === "true" ? "Home" : "Login"); 
     };
     checkLoginStatus();
   }, []);
@@ -50,6 +48,7 @@ export default function App() {
         <Stack.Screen name="Settings" component={SettingsScreen} />
         <Stack.Screen name="Tasks" component={TasksScreen} />
         <Stack.Screen name="CompletedTasks" component={CompletedTasksScreen} />
+        <Stack.Screen name="Scan" component={ScanScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

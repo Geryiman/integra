@@ -1,3 +1,4 @@
+// ✅ Importar la nueva pantalla de escaneo
 import React, { useEffect, useState } from "react";
 import { 
   View, Text, StyleSheet, TouchableOpacity, 
@@ -15,7 +16,6 @@ const HomeScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
 
-  // ✅ Obtener tareas desde el backend
   useEffect(() => {
     axios.get(`${API_URL}/api/tareas`)
       .then(response => {
@@ -29,44 +29,22 @@ const HomeScreen = ({ navigation }) => {
       });
   }, []);
 
-  // ✅ Marcar tarea como completada
-  const completeTask = (taskId) => {
-    axios.post(`${API_URL}/tareas/completar`, { id_tarea: taskId, id_usuario: 1 }) // Ajustar con el usuario logueado
-      .then(response => {
-        setTasks(tasks.map(task => 
-          task.id_tarea === taskId ? { ...task, completada: true } : task
-        ));
-        setCompletedTasks([...completedTasks, tasks.find(task => task.id_tarea === taskId)]);
-        setMessage("✅ ¡Tarea completada!");
-        setTimeout(() => setMessage(""), 2000);
-      })
-      .catch(error => {
-        console.error("Error completando tarea:", error);
-        setMessage("❌ No se pudo completar la tarea.");
-      });
-  };
-
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.content}>
-        <Text style={styles.title}>Bienvenido a TTY</Text>
-
+        <Text style={styles.title}>Bienvenido a Ecopet</Text>
         {message ? <Text style={styles.message}>{message}</Text> : null}
 
-        {/* Cargando datos */}
         {loading ? <ActivityIndicator size="large" color="#33FF99" /> : (
           <>
-            {/* Botón para ver todas las tareas */}
             <TouchableOpacity style={styles.fullTaskButton} onPress={() => navigation.navigate("Tasks")}>
               <Text style={styles.fullTaskButtonText}>📋 Ver Todas las Tareas</Text>
             </TouchableOpacity>
 
-            {/* Botón para ver tareas completadas */}
             <TouchableOpacity style={styles.completedTaskButton} onPress={() => navigation.navigate("CompletedTasks", { completedTasks })}>
               <Text style={styles.completedTaskButtonText}>✅ Ver Tareas Completadas</Text>
             </TouchableOpacity>
 
-            {/* Lista de tareas disponibles */}
             <Text style={styles.subTitle}>Tareas para obtener puntos:</Text>
             {tasks.length === 0 ? (
               <Text style={styles.noTasks}>No hay tareas disponibles.</Text>
@@ -78,11 +56,6 @@ const HomeScreen = ({ navigation }) => {
                   <View style={[styles.taskCard, item.completada ? styles.completedTask : null]}>
                     <Text style={styles.taskText}>{item.descripcion}</Text>
                     <Text style={styles.pointsText}>+{item.puntos} pts</Text>
-                    {!item.completada && (
-                      <TouchableOpacity style={styles.completeButton} onPress={() => completeTask(item.id_tarea)}>
-                        <Text style={styles.completeButtonText}>✔ Completar</Text>
-                      </TouchableOpacity>
-                    )}
                   </View>
                 )}
               />
@@ -91,7 +64,7 @@ const HomeScreen = ({ navigation }) => {
         )}
       </View>
 
-      {/* Barra de navegación */}
+      {/* 🔥 Barra de navegación con "Escanear" */}
       <View style={styles.navbar}>
         <TouchableOpacity style={styles.navButton} onPress={() => navigation.navigate("Profile")}>
           <Icon name="person" size={24} color="#FFFFFF" />
@@ -101,11 +74,16 @@ const HomeScreen = ({ navigation }) => {
           <Icon name="star" size={24} color="#FFFFFF" />
           <Text style={styles.navText}>Puntos</Text>
         </TouchableOpacity>
+        <TouchableOpacity style={styles.navButton} onPress={() => navigation.navigate("Scan")}>
+          <Icon name="qr-code-scanner" size={24} color="#FFFFFF" />
+          <Text style={styles.navText}>Escanear</Text>
+        </TouchableOpacity>
         <TouchableOpacity style={styles.navButton} onPress={() => navigation.navigate("Settings")}>
           <Icon name="settings" size={24} color="#FFFFFF" />
           <Text style={styles.navText}>Ajustes</Text>
         </TouchableOpacity>
       </View>
+
     </SafeAreaView>
   );
 };
@@ -122,16 +100,9 @@ const styles = StyleSheet.create({
   completedTask: { backgroundColor: "#2E8B57" },
   taskText: { color: "#FFFFFF", fontSize: 16, flex: 1 },
   pointsText: { backgroundColor: "#B8F2E6", color: "#000000", paddingVertical: 4, paddingHorizontal: 10, borderRadius: 5, fontWeight: "bold", fontSize: 14 },
-  fullTaskButton: { backgroundColor: "#33FF99", paddingVertical: 10, borderRadius: 10, alignItems: "center", marginBottom: 10 },
-  fullTaskButtonText: { color: "#000000", fontSize: 16, fontWeight: "bold" },
-  completedTaskButton: { backgroundColor: "#FFD700", paddingVertical: 10, borderRadius: 10, alignItems: "center", marginBottom: 20 },
-  completedTaskButtonText: { color: "#000000", fontSize: 16, fontWeight: "bold" },
-  completeButton: { backgroundColor: "#33FF99", paddingVertical: 5, paddingHorizontal: 10, borderRadius: 5 },
-  completeButtonText: { color: "#000000", fontWeight: "bold" },
   navbar: { flexDirection: "row", justifyContent: "space-around", alignItems: "center", backgroundColor: "#333333", paddingVertical: 12 },
   navButton: { alignItems: "center", justifyContent: "center" },
   navText: { fontSize: 12, color: "#FFFFFF", marginTop: 5 },
 });
 
-// ✅ Exportación única
 export default HomeScreen;
