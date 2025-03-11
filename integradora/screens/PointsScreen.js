@@ -1,107 +1,160 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ScrollView } from "react-native";
-import * as Animatable from "react-native-animatable";
-import Icon from "react-native-vector-icons/MaterialIcons";
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Alert } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+const API_URL = "http://192.168.1.27:3000"; // Cambia según tu backend
 
 export default function PointsScreen({ navigation }) {
-  const [points, setPoints] = useState(166);
-  const nextLevel = 772;
-  const level = "Embajador del reciclaje";
-  const [claimedRewards, setClaimedRewards] = useState([]);
+    const [userPoints, setUserPoints] = useState(null);
+    const [nextRank, setNextRank] = useState(null);
+    const [progress, setProgress] = useState(0);
+    const [loading, setLoading] = useState(true);
+    const [rewards, setRewards] = useState([]);
 
-  const rewards = [
-    { id: "1", name: "🎟 Boleto para una rifa de útiles escolares", points: 10 },
-    { id: "2", name: "🍬 Dulce o snack pequeño en la cooperativa", points: 15 },
-    { id: "3", name: "✏ Lápiz o pluma con diseño especial", points: 20 },
-    { id: "4", name: "📓 Pegatinas ecológicas o educativas", points: 25 },
-    { id: "5", name: "🎫 Pase para escuchar música en clase", points: 30 },
-  ];
+    const ranks = [
+        { id: "1", name: "🟢 Aprendiz del Reciclaje", min: 0, max: 99, color: "#00FF00" },
+        { id: "2", name: "🔵 Recolector Novato", min: 100, max: 299, color: "#0099FF" },
+        { id: "3", name: "🟣 Eco-Explorador", min: 300, max: 599, color: "#9900FF" },
+        { id: "4", name: "🟠 Guardián del PET", min: 600, max: 999, color: "#FF9900" },
+        { id: "5", name: "🟡 Reciclador Experto", min: 1000, max: 1499, color: "#FFFF00" },
+        { id: "6", name: "⚪ Eco-Héroe", min: 1500, max: 2499, color: "#FFFFFF" },
+        { id: "7", name: "🟤 Embajador del Reciclaje", min: 2500, max: 3999, color: "#8B4513" },
+        { id: "8", name: "🏆 Maestro del PET", min: 4000, max: 5999, color: "#FFD700" },
+        { id: "9", name: "🏅 Leyenda Verde", min: 6000, max: Infinity, color: "#32CD32" },
+    ];
 
-  // Función para canjear una recompensa
-  const redeemReward = (reward) => {
-    if (points >= reward.points) {
-      setPoints(points - reward.points);
-      setClaimedRewards([...claimedRewards, reward]);
-      navigation.navigate("Rewards", { claimedRewards: [...claimedRewards, reward] });
-    } else {
-      alert("No tienes suficientes puntos");
-    }
-  };
+    useEffect(() => {
+        const fetchUserData = async () => {
+            setLoading(true);
+            try {
+                const userId = await AsyncStorage.getItem("userId");
+                if (!userId) {
+                    console.warn("No hay usuario almacenado");
+                    setLoading(false);
+                    return;
+                }
 
-  return (
-    <ScrollView style={styles.container}>
-      {/* Encabezado */}
-      <View style={styles.header}>
-        <Icon name="arrow-back" size={28} color="#FFFFFF" />
-        <Text style={styles.headerTitle}>Puntos TTY</Text>
-        <Icon name="more-vert" size={28} color="#FFFFFF" />
-      </View>
+                // Obtener puntos del usuario
+                const userResponse = await fetch(`${API_URL}/usuarios/${userId}`);
+                const userData = await userResponse.json();
+                setUserPoints(userData.puntos_totales);
 
-      {/* Nivel y progreso */}
-      <Text style={styles.level}>{level}</Text>
-      <Text style={styles.subText}>Ganarás puntos por cada acción ecológica.</Text>
-      <Text style={styles.progressText}>{nextLevel - points} puntos hasta el nivel Plata</Text>
+                // Obtener recompensas disponibles
+                const rewardsResponse = await fetch(`${API_URL}/api/premios`);
+                const rewardsData = await rewardsResponse.json();
+                setRewards(rewardsData);
 
-      {/* Barra de progreso */}
-      <View style={styles.progressBarContainer}>
-        <View style={[styles.progressBar, { width: `${(points / nextLevel) * 100}%` }]} />
-      </View>
+                // Calcular el próximo rango
+                const currentRankIndex = ranks.findIndex(rank => userData.puntos_totales >= rank.min && userData.puntos_totales <= rank.max);
+                if (currentRankIndex !== -1 && currentRankIndex < ranks.length - 1) {
+                    setNextRank(ranks[currentRankIndex + 1]);
+                    const neededPoints = ranks[currentRankIndex + 1].min - userData.puntos_totales;
+                    setProgress((userData.puntos_totales - ranks[currentRankIndex].min) / (ranks[currentRankIndex + 1].min - ranks[currentRankIndex].min));
+                } else {
+                    setNextRank(null);
+                    setProgress(1);
+                }
+            } catch (error) {
+                console.error("Error al obtener datos del usuario:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
 
-      {/* Animación de puntos */}
-      <Animatable.Text animation="fadeInUp" duration={2000} style={styles.points}>
-        {points}
-      </Animatable.Text>
+        fetchUserData();
+    }, []);
 
-      {/* Botón para ver el historial de recompensas */}
-      <TouchableOpacity style={styles.historyButton} onPress={() => navigation.navigate("History")}>
-        <Text style={styles.historyButtonText}>📜 Ver Historial de Recompensas</Text>
-      </TouchableOpacity>
+    // Función para canjear un premio
+    const redeemReward = async (rewardId) => {
+        try {
+            const userId = await AsyncStorage.getItem("userId");
+            const response = await fetch(`${API_URL}/api/premios/canjear`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ id_usuario: userId, id_premio: rewardId }),
+            });
 
-      {/* Botón para ver los rangos disponibles */}
-      <TouchableOpacity style={styles.ranksButton} onPress={() => navigation.navigate("Ranks")}>
-        <Text style={styles.ranksButtonText}>🏅 Ver Rangos Disponibles</Text>
-      </TouchableOpacity>
+            const data = await response.json();
+            if (data.mensaje) {
+                Alert.alert("¡Éxito!", data.mensaje);
+            } else {
+                Alert.alert("Error", data.error || "No se pudo canjear la recompensa");
+            }
+        } catch (error) {
+            console.error("Error al canjear la recompensa:", error);
+            Alert.alert("Error", "No se pudo procesar el canje");
+        }
+    };
 
-      <Text style={styles.rewardsTitle}>Recompensas disponibles</Text>
+    return (
+        <View style={styles.container}>
+            {loading ? (
+                <ActivityIndicator size="large" color="#FFD700" />
+            ) : (
+                <>
+                    <Text style={styles.title}>Puntos TTY</Text>
+                    <Text style={[styles.rankText, { color: ranks.find(r => userPoints >= r.min && userPoints <= r.max)?.color }]}>
+                        {ranks.find(r => userPoints >= r.min && userPoints <= r.max)?.name}
+                    </Text>
+                    <Text style={styles.rankSubtitle}>Ganarás puntos por cada acción ecológica.</Text>
+                    {nextRank && (
+                        <Text style={styles.rankProgressText}>
+                            {nextRank.min - userPoints} puntos hasta el nivel {nextRank.name}
+                        </Text>
+                    )}
+                    <View style={styles.progressBarContainer}>
+                        <View style={[styles.progressBar, { width: `${progress * 100}%` }]} />
+                    </View>
+                    <Text style={styles.pointsText}>{userPoints}</Text>
 
-      {/* Lista de recompensas */}
-      <FlatList
-        data={rewards}
-        keyExtractor={(item) => item.id}
-        horizontal
-        renderItem={({ item }) => (
-          <View style={styles.rewardCard}>
-            <Text style={styles.rewardText}>{item.name}</Text>
-            <Text style={styles.rewardPoints}>{item.points} pts</Text>
-            <TouchableOpacity style={styles.claimButton} onPress={() => redeemReward(item)}>
-              <Text style={styles.claimButtonText}>Canjear</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-      />
-    </ScrollView>
-  );
+                    <TouchableOpacity style={styles.historyButton} onPress={() => navigation.navigate("History")}>
+                        <Text style={styles.buttonText}>📜 Ver Historial de Recompensas</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity style={styles.ranksButton} onPress={() => navigation.navigate("Ranks")}>
+                        <Text style={styles.buttonText}>🥇 Ver Rangos Disponibles</Text>
+                    </TouchableOpacity>
+
+                    <Text style={styles.rewardsTitle}>Recompensas disponibles</Text>
+                    <FlatList
+                        data={rewards}
+                        keyExtractor={(item) => item.id_recompensa.toString()}
+                        horizontal
+                        renderItem={({ item }) => (
+                            <View style={styles.rewardCard}>
+                                <Text style={styles.rewardName}>{item.nombre}</Text>
+                                <Text style={styles.rewardPoints}>{item.puntos_necesarios} pts</Text>
+                                <TouchableOpacity
+                                    onPress={() => redeemReward(item.id_recompensa)}
+                                    style={styles.rewardButton}
+                                >
+                                    <Text style={styles.rewardButtonText}>Canjear</Text>
+                                </TouchableOpacity>
+                            </View>
+                        )}
+                    />
+                </>
+            )}
+        </View>
+    );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#000000", padding: 20 },
-  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 20 },
-  headerTitle: { fontSize: 20, color: "#FFFFFF", fontWeight: "bold" },
-  level: { fontSize: 28, fontWeight: "bold", color: "#FFA726", textAlign: "center", marginBottom: 5 },
-  subText: { color: "#FFFFFF", textAlign: "center", marginBottom: 10 },
-  progressText: { color: "#FFFFFF", textAlign: "center", fontSize: 14, marginBottom: 10 },
-  progressBarContainer: { height: 10, backgroundColor: "#333333", borderRadius: 5, overflow: "hidden", marginBottom: 20 },
-  progressBar: { height: "100%", backgroundColor: "#33FF99" },
-  points: { fontSize: 64, fontWeight: "bold", color: "#33FF99", textAlign: "center", marginBottom: 20 },
-  historyButton: { backgroundColor: "#FFD700", padding: 10, borderRadius: 5, alignItems: "center", marginBottom: 10 },
-  historyButtonText: { color: "#000000", fontSize: 16, fontWeight: "bold" },
-  ranksButton: { backgroundColor: "#5E6472", padding: 10, borderRadius: 5, alignItems: "center", marginBottom: 20 },
-  ranksButtonText: { color: "#FFFFFF", fontSize: 16, fontWeight: "bold" },
-  rewardsTitle: { fontSize: 18, fontWeight: "bold", color: "#FFFFFF", marginBottom: 10 },
-  rewardCard: { backgroundColor: "#1E1E1E", borderRadius: 10, padding: 10, marginRight: 10, alignItems: "center", width: 180 },
-  rewardText: { color: "#FFFFFF", fontSize: 14, textAlign: "center" },
-  rewardPoints: { color: "#B8F2E6", fontSize: 12, marginVertical: 5 },
-  claimButton: { backgroundColor: "#5E6472", paddingVertical: 5, paddingHorizontal: 15, borderRadius: 5, marginTop: 5 },
-  claimButtonText: { color: "#FFFFFF", fontSize: 14, fontWeight: "bold" },
+    container: { flex: 1, backgroundColor: "#000", padding: 20 },
+    title: { color: "#FFF", fontSize: 24, fontWeight: "bold", textAlign: "center" },
+    rankText: { fontSize: 20, fontWeight: "bold", textAlign: "center", marginTop: 5 },
+    rankSubtitle: { color: "#FFF", textAlign: "center", marginBottom: 10 },
+    rankProgressText: { color: "#FFF", textAlign: "center", marginBottom: 5 },
+    progressBarContainer: { height: 10, backgroundColor: "#333", borderRadius: 5, overflow: "hidden", marginVertical: 5 },
+    progressBar: { height: "100%", backgroundColor: "#FFD700" },
+    pointsText: { color: "#32CD32", fontSize: 36, textAlign: "center", fontWeight: "bold", marginVertical: 10 },
+    historyButton: { backgroundColor: "#FFD700", padding: 10, borderRadius: 5, marginBottom: 10 },
+    ranksButton: { backgroundColor: "#5E6472", padding: 10, borderRadius: 5, marginBottom: 10 },
+    buttonText: { textAlign: "center", fontWeight: "bold" },
+    rewardsTitle: { color: "#FFF", fontSize: 18, marginVertical: 10 },
+    rewardCard: { backgroundColor: "#222", padding: 15, marginRight: 10, borderRadius: 10 },
+    rewardName: { color: "#FFF", fontSize: 14 },
+    rewardPoints: { color: "#FFF", fontSize: 12 },
+    rewardButton: { backgroundColor: "#FFD700", padding: 5, borderRadius: 5 },
+    rewardButtonText: { color: "#000", fontWeight: "bold" },
 });
-
