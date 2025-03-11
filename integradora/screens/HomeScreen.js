@@ -1,53 +1,57 @@
 import React, { useEffect, useState } from "react";
 import { 
   View, Text, StyleSheet, TouchableOpacity, 
-  SafeAreaView, FlatList, ActivityIndicator 
+  SafeAreaView, FlatList, ActivityIndicator
 } from "react-native";
+import { WebView } from "react-native-webview";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // ✅ IP de tu backend
-const API_URL = "http://192.168.1.27:3000";
+const API_URL = "http://192.168.1.27:3000/api";
 
 const HomeScreen = ({ navigation }) => {
-  const [tasks, setTasks] = useState([]);
-  const [completedTasks, setCompletedTasks] = useState([]);
+  const [videos, setVideos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
 
-  // ✅ Obtener tareas según el usuario autenticado
+  // ✅ Obtener videos desde el backend
   useEffect(() => {
-    const fetchTasks = async () => {
-      const userId = await AsyncStorage.getItem("userId");
-      if (!userId) {
-        setMessage("Usuario no autenticado.");
-        setLoading(false);
-        return;
-      }
-
+    const fetchVideos = async () => {
       try {
-        // ✅ Obtener tareas disponibles y tareas completadas por el usuario
-        const [taskResponse, completedResponse] = await Promise.all([
-          axios.get(`${API_URL}/api/tareas`),
-          axios.get(`${API_URL}/api/completadas/${userId}`)
-        ]);
-
-        setTasks(taskResponse.data);
-        setCompletedTasks(completedResponse.data.map(task => task.id_tarea));
+        const response = await axios.get(`${API_URL}/videos`);
+        setVideos(response.data);
       } catch (error) {
-        console.error("Error cargando tareas:", error);
-        setMessage("No se pudieron cargar las tareas.");
+        console.error("Error cargando videos:", error);
+        setMessage("No se pudieron cargar los videos.");
       } finally {
         setLoading(false);
       }
     };
 
-    fetchTasks();
+    fetchVideos();
   }, []);
 
-  // ✅ Filtrar tareas que el usuario aún no ha completado
-  const availableTasks = tasks.filter(task => !completedTasks.includes(task.id_tarea));
+  // ✅ Función para registrar que el usuario vio el video y ganar puntos
+  const handleVideoWatched = async (id_video) => {
+    const userId = await AsyncStorage.getItem("userId");
+    if (!userId) {
+      alert("Debes iniciar sesión para ganar puntos.");
+      return;
+    }
+
+    try {
+      const response = await axios.post(`${API_URL}/videos/visto`, {
+        id_usuario: userId,
+        id_video: id_video
+      });
+
+      alert(response.data.message);
+    } catch (error) {
+      alert(error.response?.data?.message || "Error registrando el video.");
+    }
+  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -56,36 +60,41 @@ const HomeScreen = ({ navigation }) => {
 
         {message ? <Text style={styles.message}>{message}</Text> : null}
 
-        {/* Cargando datos */}
+        {/* Botón para ver todas las tareas */}
+        <TouchableOpacity style={styles.fullTaskButton} onPress={() => navigation.navigate("Tasks")}>
+          <Text style={styles.fullTaskButtonText}>📋 Ver Tareas pendientes</Text>
+        </TouchableOpacity>
+
+        {/* Botón para ver tareas completadas */}
+        <TouchableOpacity style={styles.completedTaskButton} onPress={() => navigation.navigate("CompletedTasks")}>
+          <Text style={styles.completedTaskButtonText}>✅ Ver Tareas Completadas</Text>
+        </TouchableOpacity>
+
+        {/* Lista de videos disponibles */}
+        <Text style={styles.subTitle}>🎥 Ver videos para obtener puntos:</Text>
         {loading ? <ActivityIndicator size="large" color="#33FF99" /> : (
-          <>
-            {/* Botón para ver todas las tareas */}
-            <TouchableOpacity style={styles.fullTaskButton} onPress={() => navigation.navigate("Tasks")}>
-              <Text style={styles.fullTaskButtonText}>📋 Ver Todas las Tareas</Text>
-            </TouchableOpacity>
-
-            {/* Botón para ver tareas completadas */}
-            <TouchableOpacity style={styles.completedTaskButton} onPress={() => navigation.navigate("CompletedTasks", { completedTasks })}>
-              <Text style={styles.completedTaskButtonText}>✅ Ver Tareas Completadas</Text>
-            </TouchableOpacity>
-
-            {/* Lista de tareas disponibles */}
-            <Text style={styles.subTitle}>Tareas para obtener puntos:</Text>
-            {availableTasks.length === 0 ? (
-              <Text style={styles.noTasks}>No hay tareas disponibles.</Text>
-            ) : (
-              <FlatList
-                data={availableTasks}
-                keyExtractor={(item) => item.id_tarea.toString()}
-                renderItem={({ item }) => (
-                  <View style={[styles.taskCard, item.tipo === 'Especial' ? styles.specialTask : null]}>
-                    <Text style={styles.taskText}>{item.descripcion}</Text>
-                    <Text style={styles.pointsText}>+{item.puntos} pts</Text>
-                  </View>
-                )}
-              />
-            )}
-          </>
+          videos.length === 0 ? (
+            <Text style={styles.noVideos}>No hay videos disponibles.</Text>
+          ) : (
+            <FlatList
+              data={videos}
+              keyExtractor={(item) => item.id_video.toString()}
+              renderItem={({ item }) => (
+                <View style={styles.videoCard}>
+                  <Text style={styles.videoTitle}>{item.titulo}</Text>
+                  <WebView 
+                    style={styles.videoPlayer} 
+                    source={{ uri: item.url_video.replace("watch?v=", "embed/") }} 
+                  />
+                  <Text style={styles.videoDescription}>{item.descripcion}</Text>
+                  <Text style={styles.pointsText}>🎯 {item.puntos} puntos</Text>
+                  <TouchableOpacity style={styles.watchButton} onPress={() => handleVideoWatched(item.id_video)}>
+                    <Text style={styles.watchButtonText}>✔️ Marcar como visto y ganar puntos</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            />
+          )
         )}
       </View>
 
@@ -118,45 +127,30 @@ const styles = StyleSheet.create({
   content: { flex: 1, padding: 20 },
   title: { fontSize: 26, fontWeight: "bold", color: "#FFFFFF", textAlign: "center", marginBottom: 20 },
   subTitle: { fontSize: 18, color: "#B8F2E6", marginBottom: 10, fontWeight: "bold" },
-  message: { color: "#FFD700", fontSize: 16, textAlign: "center", marginBottom: 10, fontWeight: "bold" },
-  noTasks: { color: "#B8F2E6", textAlign: "center", fontSize: 16, marginVertical: 20 },
-  
-  taskCard: { 
-    backgroundColor: "#5E6472", 
-    padding: 15, 
-    marginVertical: 8, 
-    borderRadius: 10, 
-    flexDirection: "row", 
-    justifyContent: "space-between", 
-    alignItems: "center" 
+  noVideos: { color: "#B8F2E6", textAlign: "center", fontSize: 16, marginVertical: 20 },
+
+  videoCard: {
+    backgroundColor: "#5E6472",
+    padding: 10,
+    marginVertical: 8,
+    borderRadius: 10,
+    alignItems: "center"
   },
-  specialTask: { 
-    backgroundColor: "#FFD700", 
-    borderWidth: 2, 
-    borderColor: "#FF4500", 
-    transform: [{ scale: 1.05 }] 
-  },
-  
-  taskText: { color: "#FFFFFF", fontSize: 16, flex: 1 },
-  pointsText: { 
-    backgroundColor: "#B8F2E6", 
-    color: "#000000", 
-    paddingVertical: 4, 
-    paddingHorizontal: 10, 
-    borderRadius: 5, 
-    fontWeight: "bold", 
-    fontSize: 14 
-  },
-  
+  videoTitle: { color: "#FFFFFF", fontSize: 16, fontWeight: "bold", textAlign: "center", marginBottom: 5 },
+  videoDescription: { color: "#B8F2E6", textAlign: "center", fontSize: 12, marginVertical: 5 },
+  videoPlayer: { width: "90%", height: 150, borderRadius: 10 },
+  pointsText: { backgroundColor: "#B8F2E6", color: "#000000", paddingVertical: 4, paddingHorizontal: 10, borderRadius: 5, fontWeight: "bold", fontSize: 14, marginTop: 5 },
+  watchButton: { backgroundColor: "#33FF99", paddingVertical: 8, paddingHorizontal: 12, borderRadius: 10, marginTop: 10 },
+  watchButtonText: { color: "#000000", fontSize: 12, fontWeight: "bold" },
+
   fullTaskButton: { backgroundColor: "#33FF99", paddingVertical: 10, borderRadius: 10, alignItems: "center", marginBottom: 10 },
   fullTaskButtonText: { color: "#000000", fontSize: 16, fontWeight: "bold" },
   completedTaskButton: { backgroundColor: "#FFD700", paddingVertical: 10, borderRadius: 10, alignItems: "center", marginBottom: 20 },
   completedTaskButtonText: { color: "#000000", fontSize: 16, fontWeight: "bold" },
-  
+
   navbar: { flexDirection: "row", justifyContent: "space-around", alignItems: "center", backgroundColor: "#333333", paddingVertical: 12 },
   navButton: { alignItems: "center", justifyContent: "center" },
   navText: { fontSize: 12, color: "#FFFFFF", marginTop: 5 },
 });
 
-// ✅ Exportación única
 export default HomeScreen;
