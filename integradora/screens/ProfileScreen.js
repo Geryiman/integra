@@ -1,49 +1,55 @@
-import React, { useState, useEffect } from "react";
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  Image, 
-  TouchableOpacity, 
-  ActivityIndicator 
+import React, { useState, useEffect, useCallback } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  ActivityIndicator,
+  TouchableOpacity,
+  Alert,
 } from "react-native";
 import * as Animatable from "react-native-animatable";
 import * as ImagePicker from "expo-image-picker";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const API_URL = "http://192.168.1.27:3000"; // Cambia esto según tu backend
+// ✅ URL del backend en producción
+const API_URL = "https://ecopet-r77q7.ondigitalocean.app/api";
 
 export default function ProfileScreen() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [refresh, setRefresh] = useState(false); // Estado para forzar actualización
+  const [uploading, setUploading] = useState(false);
 
-  useEffect(() => {
-    fetchUserData();
-  }, [refresh]); // Se ejecuta cuando cambia `refresh`
-
-  // ✅ Obtener los datos del usuario desde el backend
-  const fetchUserData = async () => {
-    const userId = await AsyncStorage.getItem("userId");
-    if (!userId) {
-      setLoading(false);
-      return;
-    }
-
+  const fetchUserData = useCallback(async () => {
     try {
+      const userId = await AsyncStorage.getItem("userId");
+      if (!userId) {
+        Alert.alert("Error", "No se encontró el usuario.");
+        setLoading(false);
+        return;
+      }
+
       const response = await fetch(`${API_URL}/usuarios/${userId}`);
       const data = await response.json();
       setUser(data);
     } catch (error) {
-      console.error("Error al obtener usuario:", error);
+      Alert.alert("Error", "No se pudo cargar la información del usuario.");
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  // ✅ Función para seleccionar y subir una nueva imagen de perfil
+  useEffect(() => {
+    fetchUserData();
+  }, [fetchUserData]);
+
   const pickImage = async () => {
-    let result = await ImagePicker.launchImageLibraryAsync({
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert("Permiso requerido", "Se necesita acceso a la galería.");
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [1, 1],
@@ -51,55 +57,61 @@ export default function ProfileScreen() {
     });
 
     if (!result.canceled) {
-      uploadImage(result.assets[0].uri);
+      await uploadImage(result.assets[0].uri);
     }
   };
 
-  // ✅ Enviar imagen al backend
-  const uploadImage = async (imageUri) => {
-    const userId = await AsyncStorage.getItem("userId");
-    if (!userId) return;
-
-    let formData = new FormData();
-    formData.append("profileImage", {
-      uri: imageUri,
-      name: `profile_${userId}.jpg`,
-      type: "image/jpeg",
-    });
-
+  const uploadImage = async (uri) => {
     try {
+      const userId = await AsyncStorage.getItem("userId");
+      if (!userId) return;
+
+      const fileName = uri.split("/").pop() || `profile_${Date.now()}.jpg`;
+      const fileType = fileName.endsWith(".png") ? "image/png" : "image/jpeg";
+
+      const formData = new FormData();
+      formData.append("profileImage", {
+        uri,
+        name: fileName,
+        type: fileType,
+      });
+
+      setUploading(true);
+
       const response = await fetch(`${API_URL}/usuarios/${userId}/upload`, {
         method: "POST",
         body: formData,
         headers: {
-          "Content-Type": "multipart/form-data",
+          Accept: "application/json", // No incluir Content-Type
         },
       });
 
       const data = await response.json();
+
       if (data.profileImage) {
-        setUser((prevUser) => ({
-          ...prevUser,
-          profileImage: `${API_URL}/${data.profileImage}`,
-        }));
-        setRefresh((prev) => !prev); // ✅ Forzar actualización de la pantalla
+        Alert.alert("Imagen actualizada", "La foto de perfil se actualizó con éxito.");
+        fetchUserData(); // Recargar perfil
+      } else {
+        Alert.alert("Error", "No se recibió la URL de la imagen.");
       }
     } catch (error) {
-      console.error("Error al subir imagen:", error);
+      Alert.alert("Error", "No se pudo subir la imagen.");
+    } finally {
+      setUploading(false);
     }
   };
 
-  // ✅ Determinar el rango según los puntos
   const getRank = () => {
     if (!user) return "";
-    if (user.puntos_totales >= 0 && user.puntos_totales <= 99) return "🟢 Aprendiz del Reciclaje";
-    if (user.puntos_totales >= 100 && user.puntos_totales <= 299) return "🔵 Recolector Novato";
-    if (user.puntos_totales >= 300 && user.puntos_totales <= 599) return "🟣 Eco-Explorador";
-    if (user.puntos_totales >= 600 && user.puntos_totales <= 999) return "🟠 Guardián del PET";
-    if (user.puntos_totales >= 1000 && user.puntos_totales <= 1499) return "🟡 Reciclador Experto";
-    if (user.puntos_totales >= 1500 && user.puntos_totales <= 2499) return "⚪ Eco-Héroe";
-    if (user.puntos_totales >= 2500 && user.puntos_totales <= 3999) return "🟤 Embajador del Reciclaje";
-    if (user.puntos_totales >= 4000 && user.puntos_totales <= 5999) return "🏆 Maestro del PET";
+    const p = user.puntos_totales;
+    if (p <= 99) return "🟢 Aprendiz del Reciclaje";
+    if (p <= 299) return "🔵 Recolector Novato";
+    if (p <= 599) return "🟣 Eco-Explorador";
+    if (p <= 999) return "🟠 Guardián del PET";
+    if (p <= 1499) return "🟡 Reciclador Experto";
+    if (p <= 2499) return "⚪ Eco-Héroe";
+    if (p <= 3999) return "🟤 Embajador del Reciclaje";
+    if (p <= 5999) return "🏆 Maestro del PET";
     return "🏅 Leyenda Verde";
   };
 
@@ -109,7 +121,6 @@ export default function ProfileScreen() {
         <ActivityIndicator size="large" color="#33FF99" />
       ) : user ? (
         <>
-          {/* Imagen de Perfil */}
           <Animatable.Image
             animation="bounceIn"
             duration={1500}
@@ -119,14 +130,14 @@ export default function ProfileScreen() {
             style={styles.profileImage}
           />
 
-          {/* Botón para cambiar imagen */}
           <TouchableOpacity style={styles.changeImageButton} onPress={pickImage}>
             <Text style={styles.changeImageText}>
               {user.profileImage ? "Editar Foto" : "Subir Foto"}
             </Text>
           </TouchableOpacity>
 
-          {/* Tarjeta de Perfil */}
+          {uploading && <ActivityIndicator size="small" color="#33FF99" />}
+
           <Animatable.View animation="fadeInUp" duration={2000} style={styles.profileCard}>
             <Text style={styles.profileTitle}>Perfil de Usuario</Text>
             <Text style={styles.profileText}>👤 {user.nombre}</Text>
@@ -163,7 +174,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 20,
     borderRadius: 10,
-    marginBottom: 20,
+    marginBottom: 10,
   },
   changeImageText: {
     color: "#000000",
@@ -209,4 +220,3 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
 });
-

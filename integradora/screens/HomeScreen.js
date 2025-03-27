@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { 
-  View, Text, StyleSheet, TouchableOpacity, 
+import {
+  View, Text, StyleSheet, TouchableOpacity,
   SafeAreaView, FlatList, ActivityIndicator
 } from "react-native";
 import { WebView } from "react-native-webview";
@@ -8,22 +8,21 @@ import Icon from "react-native-vector-icons/MaterialIcons";
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-// ✅ IP de tu backend
-const API_URL = "http://192.168.1.27:3000/api";
+// ✅ URL del backend
+const API_URL = "https://ecopet-r77q7.ondigitalocean.app/api";
 
 const HomeScreen = ({ navigation }) => {
   const [videos, setVideos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
 
-  // ✅ Obtener videos desde el backend
   useEffect(() => {
     const fetchVideos = async () => {
       try {
         const response = await axios.get(`${API_URL}/videos`);
         setVideos(response.data);
       } catch (error) {
-        console.error("Error cargando videos:", error);
+        console.error("❌ Error cargando videos:", error);
         setMessage("No se pudieron cargar los videos.");
       } finally {
         setLoading(false);
@@ -33,7 +32,6 @@ const HomeScreen = ({ navigation }) => {
     fetchVideos();
   }, []);
 
-  // ✅ Función para registrar que el usuario vio el video y ganar puntos
   const handleVideoWatched = async (id_video) => {
     const userId = await AsyncStorage.getItem("userId");
     if (!userId) {
@@ -60,19 +58,18 @@ const HomeScreen = ({ navigation }) => {
 
         {message ? <Text style={styles.message}>{message}</Text> : null}
 
-        {/* Botón para ver todas las tareas */}
         <TouchableOpacity style={styles.fullTaskButton} onPress={() => navigation.navigate("Tasks")}>
           <Text style={styles.fullTaskButtonText}>📋 Ver Tareas pendientes</Text>
         </TouchableOpacity>
 
-        {/* Botón para ver tareas completadas */}
         <TouchableOpacity style={styles.completedTaskButton} onPress={() => navigation.navigate("CompletedTasks")}>
           <Text style={styles.completedTaskButtonText}>✅ Ver Tareas Completadas</Text>
         </TouchableOpacity>
 
-        {/* Lista de videos disponibles */}
         <Text style={styles.subTitle}>🎥 Ver videos para obtener puntos:</Text>
-        {loading ? <ActivityIndicator size="large" color="#33FF99" /> : (
+        {loading ? (
+          <ActivityIndicator size="large" color="#33FF99" />
+        ) : (
           videos.length === 0 ? (
             <Text style={styles.noVideos}>No hay videos disponibles.</Text>
           ) : (
@@ -82,9 +79,13 @@ const HomeScreen = ({ navigation }) => {
               renderItem={({ item }) => (
                 <View style={styles.videoCard}>
                   <Text style={styles.videoTitle}>{item.titulo}</Text>
-                  <WebView 
-                    style={styles.videoPlayer} 
-                    source={{ uri: item.url_video.replace("watch?v=", "embed/") }} 
+                  <WebView
+                    style={styles.videoPlayer}
+                    source={{ uri: item.url_video.replace("watch?v=", "embed/") }}
+                    originWhitelist={['*']}
+                    allowsFullscreenVideo={true}
+                    javaScriptEnabled={true}
+                    domStorageEnabled={true}
                   />
                   <Text style={styles.videoDescription}>{item.descripcion}</Text>
                   <Text style={styles.pointsText}>🎯 {item.puntos} puntos</Text>
@@ -98,7 +99,6 @@ const HomeScreen = ({ navigation }) => {
         )}
       </View>
 
-      {/* Barra de navegación */}
       <View style={styles.navbar}>
         <TouchableOpacity style={styles.navButton} onPress={() => navigation.navigate("Profile")}>
           <Icon name="person" size={24} color="#FFFFFF" />
@@ -121,7 +121,6 @@ const HomeScreen = ({ navigation }) => {
   );
 };
 
-// ✅ Estilos mejorados
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: "#000000" },
   content: { flex: 1, padding: 20 },
@@ -139,18 +138,52 @@ const styles = StyleSheet.create({
   videoTitle: { color: "#FFFFFF", fontSize: 16, fontWeight: "bold", textAlign: "center", marginBottom: 5 },
   videoDescription: { color: "#B8F2E6", textAlign: "center", fontSize: 12, marginVertical: 5 },
   videoPlayer: { width: "90%", height: 150, borderRadius: 10 },
-  pointsText: { backgroundColor: "#B8F2E6", color: "#000000", paddingVertical: 4, paddingHorizontal: 10, borderRadius: 5, fontWeight: "bold", fontSize: 14, marginTop: 5 },
-  watchButton: { backgroundColor: "#33FF99", paddingVertical: 8, paddingHorizontal: 12, borderRadius: 10, marginTop: 10 },
+  pointsText: {
+    backgroundColor: "#B8F2E6",
+    color: "#000000",
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: 5,
+    fontWeight: "bold",
+    fontSize: 14,
+    marginTop: 5
+  },
+  watchButton: {
+    backgroundColor: "#33FF99",
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    marginTop: 10
+  },
   watchButtonText: { color: "#000000", fontSize: 12, fontWeight: "bold" },
 
-  fullTaskButton: { backgroundColor: "#33FF99", paddingVertical: 10, borderRadius: 10, alignItems: "center", marginBottom: 10 },
+  fullTaskButton: {
+    backgroundColor: "#33FF99",
+    paddingVertical: 10,
+    borderRadius: 10,
+    alignItems: "center",
+    marginBottom: 10
+  },
   fullTaskButtonText: { color: "#000000", fontSize: 16, fontWeight: "bold" },
-  completedTaskButton: { backgroundColor: "#FFD700", paddingVertical: 10, borderRadius: 10, alignItems: "center", marginBottom: 20 },
+
+  completedTaskButton: {
+    backgroundColor: "#FFD700",
+    paddingVertical: 10,
+    borderRadius: 10,
+    alignItems: "center",
+    marginBottom: 20
+  },
   completedTaskButtonText: { color: "#000000", fontSize: 16, fontWeight: "bold" },
 
-  navbar: { flexDirection: "row", justifyContent: "space-around", alignItems: "center", backgroundColor: "#333333", paddingVertical: 12 },
+  navbar: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    alignItems: "center",
+    backgroundColor: "#333333",
+    paddingVertical: 12
+  },
   navButton: { alignItems: "center", justifyContent: "center" },
-  navText: { fontSize: 12, color: "#FFFFFF", marginTop: 5 },
+  navText: { fontSize: 12, color: "#FFFFFF", marginTop: 5 }
 });
 
 export default HomeScreen;

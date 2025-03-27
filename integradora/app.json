@@ -1,28 +1,43 @@
 {
   "expo": {
-    "name": "integradora",
-    "slug": "integradora",
+    "name": "Ecopet",
+    "slug": "ecopet",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
-    "newArchEnabled": true,
+    "icon": "./assets/ecopet.png",
     "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
+      "image": "./assets/ecopet.png",
+      "resizeMode": "cover",
       "backgroundColor": "#ffffff"
     },
+    "updates": {
+      "fallbackToCacheTimeout": 0
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": true
     },
     "android": {
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
-      }
+      "package": "com.geryiman.ecopet",
+      "versionCode": 1,
+      "permissions": [
+        "INTERNET",
+        "android.permission.CAMERA"
+      ],
+      "softwareKeyboardLayoutMode": "pan"
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/ecopet.png"
+    },
+    "plugins": [
+      "expo-barcode-scanner"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "e063e7d9-08bc-43d8-805f-36f2fd301fdb"
+      }
     }
   }
 }

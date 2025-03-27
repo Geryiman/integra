@@ -8,38 +8,34 @@ import {
   SafeAreaView,
   ActivityIndicator,
 } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage"; // Importamos AsyncStorage
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Ionicons } from "@expo/vector-icons";
 
-// ✅ Define la IP del backend
-const API_URL = "http://192.168.1.27:3000/usuarios/login";
+const API_URL = "https://ecopet-r77q7.ondigitalocean.app/api/usuarios/login";
 
 export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [hidePassword, setHidePassword] = useState(true);
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // ✅ Verificar si el usuario ya está autenticado
   useEffect(() => {
     const checkLoginStatus = async () => {
       const isLoggedIn = await AsyncStorage.getItem("isLoggedIn");
       const storedUserId = await AsyncStorage.getItem("userId");
 
       if (isLoggedIn === "true" && storedUserId) {
-        navigation.replace("Home"); // Si está autenticado, va directamente a Home
+        navigation.replace("Home");
       }
     };
 
     checkLoginStatus();
   }, []);
 
-  // ✅ Función para validar email
-  const isValidEmail = (email) => {
-    return /\S+@\S+\.\S+/.test(email);
-  };
+  const isValidEmail = (email) => /\S+@\S+\.\S+/.test(email);
 
-  // ✅ Función para manejar el inicio de sesión
   const handleLogin = async () => {
     setError("");
     setSuccessMessage("");
@@ -57,12 +53,16 @@ export default function LoginScreen({ navigation }) {
       return;
     }
 
+    if (password.length < 6) {
+      setLoading(false);
+      setError("La contraseña debe tener al menos 6 caracteres.");
+      return;
+    }
+
     try {
       const response = await fetch(API_URL, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
 
@@ -74,16 +74,14 @@ export default function LoginScreen({ navigation }) {
         return;
       }
 
-      // ✅ Guardar sesión, correo y userId en AsyncStorage
+      // Guardar sesión
       await AsyncStorage.setItem("isLoggedIn", "true");
       await AsyncStorage.setItem("userEmail", email);
-      await AsyncStorage.setItem("userId", data.usuario.id_usuario.toString()); // Guarda el ID del usuario
+      await AsyncStorage.setItem("userId", data.usuario.id_usuario.toString());
 
-      // ✅ Mensaje de éxito
       setSuccessMessage(`Bienvenido ${data.usuario.nombre}`);
       setLoading(false);
 
-      // ✅ Redirigir a Home después de 1.5 segundos
       setTimeout(() => {
         navigation.reset({
           index: 0,
@@ -110,18 +108,30 @@ export default function LoginScreen({ navigation }) {
           placeholder="Correo Electrónico"
           placeholderTextColor="#333333"
           keyboardType="email-address"
+          autoCapitalize="none"
           value={email}
           onChangeText={setEmail}
         />
 
-        <TextInput
-          style={styles.input}
-          placeholder="Contraseña"
-          placeholderTextColor="#333333"
-          secureTextEntry
-          value={password}
-          onChangeText={setPassword}
-        />
+        <View style={styles.passwordContainer}>
+          <TextInput
+            style={[styles.input, { flex: 1, marginBottom: 0 }]}
+            placeholder="Contraseña"
+            placeholderTextColor="#333333"
+            secureTextEntry={hidePassword}
+            autoCapitalize="none"
+            value={password}
+            onChangeText={setPassword}
+          />
+          <TouchableOpacity onPress={() => setHidePassword(!hidePassword)}>
+            <Ionicons
+              name={hidePassword ? "eye-off-outline" : "eye-outline"}
+              size={24}
+              color="#333"
+              style={{ marginLeft: 10 }}
+            />
+          </TouchableOpacity>
+        </View>
 
         {loading ? (
           <ActivityIndicator size="large" color="#33FF99" />
@@ -132,33 +142,27 @@ export default function LoginScreen({ navigation }) {
         )}
 
         <TouchableOpacity onPress={() => navigation.navigate("Register")}>
-          <Text style={styles.registerText}>
-            ¿No tienes cuenta? Regístrate
-          </Text>
+          <Text style={styles.registerText}>¿No tienes cuenta? Regístrate</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
 }
 
-// ✅ Estilos
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: "#000000",
-  },
+  safeArea: { flex: 1, backgroundColor: "#000000" },
   container: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    padding: 20,
+    padding: 20
   },
   title: {
     fontSize: 28,
     fontWeight: "bold",
     color: "#FFFFFF",
     marginBottom: 20,
-    textAlign: "center",
+    textAlign: "center"
   },
   input: {
     width: "100%",
@@ -170,7 +174,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
     borderWidth: 2,
     borderColor: "#333333",
-    color: "#000000",
+    color: "#000000"
+  },
+  passwordContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    width: "100%",
+    marginBottom: 15
   },
   loginButton: {
     backgroundColor: "#33FF99",
@@ -179,29 +189,29 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: "center",
     width: "100%",
-    marginTop: 10,
+    marginTop: 10
   },
   buttonText: {
     color: "#000000",
     fontSize: 16,
-    fontWeight: "bold",
+    fontWeight: "bold"
   },
   registerText: {
     color: "#33FF99",
     marginTop: 10,
-    fontSize: 14,
+    fontSize: 14
   },
   errorText: {
     color: "#FF3333",
     fontSize: 14,
     marginBottom: 10,
-    textAlign: "center",
+    textAlign: "center"
   },
   successText: {
     color: "#33FF99",
     fontSize: 16,
     marginBottom: 10,
     textAlign: "center",
-    fontWeight: "bold",
-  },
+    fontWeight: "bold"
+  }
 });

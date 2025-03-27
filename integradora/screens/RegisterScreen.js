@@ -9,21 +9,22 @@ import {
   SafeAreaView,
   ActivityIndicator,
 } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage"; // Importamos AsyncStorage
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Ionicons } from "@expo/vector-icons";
+
+const API_URL = "https://ecopet-r77q7.ondigitalocean.app/api/usuarios";
 
 const RegisterScreen = ({ navigation }) => {
   const [nombre, setNombre] = useState("");
   const [apellido, setApellido] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [hidePassword, setHidePassword] = useState(true);
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // 📌 Función para validar email
-  const isValidEmail = (email) => {
-    return /\S+@\S+\.\S+/.test(email);
-  };
+  const isValidEmail = (email) => /\S+@\S+\.\S+/.test(email);
 
   const handleRegister = async () => {
     setError("");
@@ -31,7 +32,7 @@ const RegisterScreen = ({ navigation }) => {
     setLoading(true);
 
     // ✅ Validaciones
-    if (!nombre || !apellido || !email || !password) {
+    if (!nombre.trim() || !apellido.trim() || !email.trim() || !password.trim()) {
       setLoading(false);
       setError("Todos los campos son obligatorios.");
       return;
@@ -49,15 +50,12 @@ const RegisterScreen = ({ navigation }) => {
       return;
     }
 
-    // ✅ Concatenar nombre y apellido en un solo campo
     const nombreCompleto = `${nombre.trim()} ${apellido.trim()}`;
 
     try {
-      const response = await fetch("http://192.168.1.27:3000/usuarios", {
+      const response = await fetch(API_URL, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ nombre: nombreCompleto, email, password }),
       });
 
@@ -69,20 +67,16 @@ const RegisterScreen = ({ navigation }) => {
         return;
       }
 
-      // ✅ Guardar toda la información del usuario en AsyncStorage
       await AsyncStorage.setItem("isLoggedIn", "true");
       await AsyncStorage.setItem("userEmail", email);
       await AsyncStorage.setItem("userName", nombreCompleto);
-      await AsyncStorage.setItem("userId", data.id.toString()); // Guardar el ID del usuario
+      await AsyncStorage.setItem("userId", data.id.toString());
 
       setSuccessMessage("Registro exitoso. Redirigiendo...");
       setLoading(false);
 
       setTimeout(() => {
-        navigation.reset({
-          index: 0,
-          routes: [{ name: "Home" }],
-        });
+        navigation.reset({ index: 0, routes: [{ name: "Home" }] });
       }, 1500);
     } catch (error) {
       setLoading(false);
@@ -98,43 +92,51 @@ const RegisterScreen = ({ navigation }) => {
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
         {successMessage ? <Text style={styles.successText}>{successMessage}</Text> : null}
 
-        {/* ✅ Input para Nombre */}
         <TextInput
           style={styles.input}
           placeholder="Nombre"
-          placeholderTextColor="#333333"
+          placeholderTextColor="#333"
           value={nombre}
           onChangeText={setNombre}
         />
 
-        {/* ✅ Input para Apellido */}
         <TextInput
           style={styles.input}
           placeholder="Apellido"
-          placeholderTextColor="#333333"
+          placeholderTextColor="#333"
           value={apellido}
           onChangeText={setApellido}
         />
 
-        {/* ✅ Input para Email */}
         <TextInput
           style={styles.input}
           placeholder="Correo Electrónico"
-          placeholderTextColor="#333333"
+          placeholderTextColor="#333"
           keyboardType="email-address"
+          autoCapitalize="none"
           value={email}
           onChangeText={setEmail}
         />
 
-        {/* ✅ Input para Contraseña */}
-        <TextInput
-          style={styles.input}
-          placeholder="Contraseña (mínimo 6 caracteres)"
-          placeholderTextColor="#333333"
-          secureTextEntry
-          value={password}
-          onChangeText={setPassword}
-        />
+        <View style={styles.passwordContainer}>
+          <TextInput
+            style={[styles.input, { flex: 1, marginBottom: 0 }]}
+            placeholder="Contraseña (mínimo 6 caracteres)"
+            placeholderTextColor="#333"
+            secureTextEntry={hidePassword}
+            autoCapitalize="none"
+            value={password}
+            onChangeText={setPassword}
+          />
+          <TouchableOpacity onPress={() => setHidePassword(!hidePassword)}>
+            <Ionicons
+              name={hidePassword ? "eye-off-outline" : "eye-outline"}
+              size={24}
+              color="#333"
+              style={{ marginLeft: 10 }}
+            />
+          </TouchableOpacity>
+        </View>
 
         <View style={styles.buttonContainer}>
           {loading ? (
@@ -155,7 +157,6 @@ const RegisterScreen = ({ navigation }) => {
   );
 };
 
-// 📌 **Estilos**
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
@@ -185,6 +186,12 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: "#333333",
     color: "#000000",
+  },
+  passwordContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    width: "100%",
+    marginBottom: 15,
   },
   buttonContainer: {
     flexDirection: "row",
